@@ -23,9 +23,7 @@ void UART_Init(void);
 void UART_SendChar(char c);
 void UART_SendString(const char *str);
 uint8_t Read_GPIO_Input(void);
-//The format is a simple ASCII string that consists of the starting tag <d>
-//followed by the average expressed as an ASCII string with one significant digit to the right of the decimal
-//point followed by </d>.
+
 // Main Function
 int main(void) {
     CircularBuffer cb;
@@ -41,42 +39,41 @@ int main(void) {
 
     while (1) {
         // Read the state of the DIP switch
-        uint8_t switch_state = Read_GPIO_Input();
-        CircularBuffer_Add(&cb, switch_state);
+        uint8_t msb_state = Read_GPIO_Input();
+        CircularBuffer_Add(&cb, msb_state);
         Delay(SAMPLE_INTERVAL); // 100 ms delay
         elapsed_time += SAMPLE_INTERVAL;
 
         // Send the state to UART
-        UART_SendString("DIP Switch State: 0x");
-        UARTCharPut(UART0_BASE, "0123456789ABCDEF"[(switch_state >> 4) & 0x0F]); // Send high nibble
-        UARTCharPut(UART0_BASE, "0123456789ABCDEF"[switch_state & 0x0F]);       // Send low nibble
+        UART_SendString("Most Significant Bit: 0x");
+        UARTCharPut(UART0_BASE, "0123456789ABCDEF"[(msb_state >> 4) & 0x0F]); // Send high nibble
+        UARTCharPut(UART0_BASE, "0123456789ABCDEF"[msb_state & 0x0F]);       // Send low nibble
         UART_SendString("\r\n");
 
 
-
-
         // Every 1000 ms, calculate and process the average
-        if (elapsed_time >= AVERAGE_INTERVAL) {
+//        if (elapsed_time >= AVERAGE_INTERVAL) {
 //            uint8_t average = Calculate_Average(&cb);
 //            UART_SendString("<d>");
 //            UARTCharPut(UART0_BASE, "0123456789ABCDEF"[(average >> 4) & 0x0F]); // Send high nibble
 //            UARTCharPut(UART0_BASE, "0123456789ABCDEF"[average & 0x0F]);       // Send low nibble
-//            UART_SendString("</d>\r\n");
+//            UART_SendString("</d>\n");
+//
+//            elapsed_time = 0; // Reset elapsed time
+//        }
+
+        if (elapsed_time >= AVERAGE_INTERVAL) {
             float average = Calculate_Average(&cb);
 
-            // Scale average to get integer and fractional parts
-            int integer_part = (int)average;               // Get the integer part
-            int fractional_part = (int)((average - integer_part) * 10); // Get the first decimal place
+            // Format and transmit the average
+            int integer_part = (int)average;
+            int fractional_part = (int)((average - integer_part) * 10);
 
-            if (integer_part >= 0 && integer_part <= 9 && fractional_part >= 0 && fractional_part <= 9) {
-                UART_SendString("<d>");
-                UARTCharPut(UART0_BASE, '0' + integer_part); // Send integer part
-                UARTCharPut(UART0_BASE, '.');               // Send decimal point
-                UARTCharPut(UART0_BASE, '0' + fractional_part); // Send fractional part
-                UART_SendString("</d>\r\n");
-            } else {
-                UART_SendString("Error: Invalid parts\r\n");
-            }
+            UART_SendString("<d>");
+            UARTCharPut(UART0_BASE, '0' + integer_part);
+            UARTCharPut(UART0_BASE, '.');
+            UARTCharPut(UART0_BASE, '0' + fractional_part);
+            UART_SendString("</d>\r\n");
 
             elapsed_time = 0; // Reset elapsed time
         }
@@ -111,6 +108,16 @@ void GPIO_Init(void) {
     GPIOPinTypeGPIOInput(GPIO_PORTF_BASE, GPIO_PIN_4);
 //    GPIOPadConfigSet(GPIO_PORTF_BASE, GPIO_PIN_4, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 }
+uint8_t Get_Most_Significant_Bit(uint8_t value) {
+    // Iterate from MSB (bit 7) to LSB (bit 0)
+    int i = 7;
+    for (i; i >= 0; i--) {
+        if (value & (1 << i)) { // Check if bit i is set
+            return i + 1; // Return 1-based index of the MSB
+        }
+    }
+    return 0; // Return 0 if no bits are set
+}
 
 uint8_t Read_GPIO_Input(void) {
     uint8_t value = 0;
@@ -127,7 +134,7 @@ uint8_t Read_GPIO_Input(void) {
    // Read PF4 (b8)
    value |= ((GPIOPinRead(GPIO_PORTF_BASE, GPIO_PIN_4) >> 4) & 0x01) << 7;
 
-   return value;
+   return Get_Most_Significant_Bit(value);
 }
 
 void CircularBuffer_Init(CircularBuffer *cb) {
@@ -143,25 +150,13 @@ void CircularBuffer_Add(CircularBuffer *cb, uint8_t value) {
     }
 }
 
-//uint8_t Calculate_Average(CircularBuffer *cb) {
-//    uint16_t sum = 0; // Use a 16-bit integer to avoid overflow
-//    uint8_t i = 0;
-//    for (i; i < cb->count; i++) {
-//        sum += cb->buffer[i];
-//    }
-//    return (cb->count > 0) ? (uint8_t)(sum / cb->count) : 0; // Return average
-//}
-
-float Calculate_Average(CircularBuffer *cb) {
-    uint16_t sum = 0;
+uint8_t Calculate_Average(CircularBuffer *cb) {
+    uint16_t sum = 0; // Use a 16-bit integer to avoid overflow
     uint8_t i = 0;
     for (i; i < cb->count; i++) {
         sum += cb->buffer[i];
     }
-    if (cb->count == 0) {
-        return 0.0; // Avoid division by zero
-    }
-    return (cb->count > 0) ? ((float)sum / cb->count) : 0.0;
+    return (cb->count > 0) ? (uint8_t)(sum / cb->count) : 0; // Return average
 }
 
 void Delay(uint32_t ms) {
