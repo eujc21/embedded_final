@@ -19,6 +19,9 @@ hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/sysctl.h
 hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/gpio.h
 hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/uart.h
 hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/pin_map.h
+hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/timer.h
+hello.obj: C:/ti/tivaware_c_series_2_1_4_178/driverlib/interrupt.h
+hello.obj: C:/ti/tivaware_c_series_2_1_4_178/inc/hw_ints.h
 
 ../hello.c:
 
@@ -57,4 +60,10 @@ C:/ti/tivaware_c_series_2_1_4_178/driverlib/gpio.h:
 C:/ti/tivaware_c_series_2_1_4_178/driverlib/uart.h:
 
 C:/ti/tivaware_c_series_2_1_4_178/driverlib/pin_map.h:
+
+C:/ti/tivaware_c_series_2_1_4_178/driverlib/timer.h:
+
+C:/ti/tivaware_c_series_2_1_4_178/driverlib/interrupt.h:
+
+C:/ti/tivaware_c_series_2_1_4_178/inc/hw_ints.h:
 
